@@ -3,6 +3,4 @@ pandas
 openpyxl
 reportlab
 FPDF
-string
-os
-datetime
+
