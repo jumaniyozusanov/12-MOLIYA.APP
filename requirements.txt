@@ -1,8 +1,10 @@
-streamlit
-pandas
-numpy
-matplotlib
-plotly
+streamlit==1.52.2
+pandas==2.3.3
+numpy==2.4.0
+matplotlib==3.8.0
+openpyxl==3.1.3
+
+
 
 
 
