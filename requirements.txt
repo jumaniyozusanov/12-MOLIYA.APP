@@ -1,8 +1,10 @@
 streamlit
 pandas
-openpyxl
-xlsx2html
-pdfkit
+numpy
+matplotlib
+plotly
+
+
 
 
 
