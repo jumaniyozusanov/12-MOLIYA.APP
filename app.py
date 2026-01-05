@@ -1,127 +1,10 @@
 import streamlit as st
 import pandas as pd
-from openpyxl import load_workbook, Workbook
-from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.styles import Alignment
-from io import BytesIO
-from xlsx2html import xlsx2html
-import pdfkit
-import tempfile
-import os
-
-# st.title("💰 Moliyaviy Hisobot Dasturi")
-# menu = ["12-Moliya", "Moliya Natija", "Hisobot"]
-# choice = st.sidebar.selectbox("Sahifa tanlang", menu)
-
-# def numeric_like_kivy(df, cols):
-#     for col in cols:
-#         if col in df.columns:
-#             df[col] = df[col].astype(str).str.replace(",", "", regex=False).str.strip()
-#             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-#     return df
-
-# def yoz_sheetga(df, wb, sheet_name, start_row=6, start_col=1):
-#     if sheet_name in wb.sheetnames:
-#         ws = wb[sheet_name]
-#     else:
-#         ws = wb.create_sheet(sheet_name)
-#     df = df.reset_index(drop=True)
-#     for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=False), start=start_row):
-#         for c_idx, value in enumerate(row, start=start_col):
-#             cell = ws.cell(row=r_idx, column=c_idx)
-#             cell.value = value
-#             cell.alignment = Alignment(wrap_text=True, vertical="top")
-#             if isinstance(value, (int, float)):
-#                 cell.number_format = '#,##0.0'
-
-# def excel_bytes_to_pdf_bytes(excel_bytes):
-#     with tempfile.TemporaryDirectory() as tmpdir:
-#         excel_path = os.path.join(tmpdir, "temp.xlsx")
-#         pdf_path = os.path.join(tmpdir, "temp.pdf")
-#         with open(excel_path, "wb") as f:
-#             f.write(excel_bytes.getbuffer())
-
-#         # Excel → HTML
-#         html_path = os.path.join(tmpdir, "temp.html")
-#         xlsx2html(excel_path, html_path)
-
-#         # HTML → PDF
-#         pdfkit.from_file(html_path, pdf_path)
-
-#         # PDF-ni o‘qish
-#         pdf_buffer = BytesIO()
-#         with open(pdf_path, "rb") as f:
-#             pdf_buffer.write(f.read())
-#         pdf_buffer.seek(0)
-#         return pdf_buffer
-
-# if choice == "12-Moliya":
-#     st.header("📁 12-Moliya uchun fayllarni tanlang")
-#     katalog1 = st.file_uploader("1-oy katalog", type=["xlsx"])
-#     baza1 = st.file_uploader("1-oy baza", type=["xlsx"])
-#     katalog2 = st.file_uploader("2-oy katalog", type=["xlsx"])
-#     baza2 = st.file_uploader("2-oy baza", type=["xlsx"])
-#     template = st.file_uploader("Shablon", type=["xlsx"])
-#     output_name = st.text_input("Natija nomi")
-
-#     if st.button("START"):
-#         if not all([katalog1, baza1, katalog2, baza2, template, output_name.strip()]):
-#             st.error("❌ Hamma fayllar va nom kiritilishi kerak")
-#         else:
-#             st.success("✅ Ish boshlanmoqda...")
-
-#             # Excel fayllarni o‘qish
-#             katalog08 = pd.read_excel(katalog1, dtype=str)
-#             baza08 = pd.read_excel(baza1, dtype=str)
-#             katalog09 = pd.read_excel(katalog2, dtype=str)
-#             baza09 = pd.read_excel(baza2, dtype=str)
-
-#             baza08 = numeric_like_kivy(baza08, ["G1","G2","G3","G4","G5","G6","G7"])
-#             baza09 = numeric_like_kivy(baza09, ["G1","G2","G3","G4","G5","G6","G7"])
-
-#             # Template-ni yuklash
-#             wb = load_workbook(template)
-
-#             yoz_sheetga(baza08, wb, "Baza08")
-#             yoz_sheetga(baza09, wb, "Baza09")
-
-#             # Excel faylini BytesIO ga yozish
-#             excel_buffer = BytesIO()
-#             wb.save(excel_buffer)
-#             excel_buffer.seek(0)
-
-#             # PDF yaratish
-#             pdf_buffer = excel_bytes_to_pdf_bytes(excel_buffer)
-
-#             # Yuklab olish tugmalari
-#             st.download_button(
-#                 "📥 Excel yuklab olish",
-#                 data=excel_buffer,
-#                 file_name=f"{output_name}.xlsx",
-#                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-#             )
-#             st.download_button(
-#                 "📄 PDF yuklab olish",
-#                 data=pdf_buffer,
-#                 file_name=f"{output_name}.pdf",
-#                 mime="application/pdf"
-#             )
-
-
-
-
-
-
-
-
-import streamlit as st
-import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import Alignment
 import os
-import pythoncom
-import win32com.client as win32
+
 
 from functools import reduce
 import pandas as pd
@@ -135,41 +18,44 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from io import BytesIO
 import tempfile
 import os
+
+
 # ==========================
 # EXCEL → PDF FUNKSIYA
 # ==========================
-# def excel_to_clean_pdf(excel_path, pdf_path):
-#     pythoncom.CoInitialize()
-#     excel = win32.DispatchEx("Excel.Application")
-#     excel.DisplayAlerts = False
-#     wb = excel.Workbooks.Open(excel_path)
+from io import BytesIO
+from xlsx2html import xlsx2html
+import pdfkit
+import tempfile
+import os
 
-#     for sheet in wb.Sheets:
-#         used = sheet.UsedRange
-#         used.Font.Name = "Arial"
-#         used.Font.Size = 12
-#         used.Columns.AutoFit()
-#         for col in used.Columns:
-#             if col.ColumnWidth > 35:
-#                 col.ColumnWidth = 35
+def excel_bytes_to_pdf_bytes(excel_bytes: BytesIO) -> BytesIO:
+    """
+    Streamlit Cloud / Linux uchun mos Excel → PDF
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        excel_path = os.path.join(tmpdir, "input.xlsx")
+        html_path = os.path.join(tmpdir, "output.html")
+        pdf_path = os.path.join(tmpdir, "output.pdf")
 
-#         ps = sheet.PageSetup
-#         ps.Orientation = 1
-#         ps.CenterHorizontally = True
-#         ps.LeftMargin   = excel.CentimetersToPoints(0.7)
-#         ps.RightMargin  = excel.CentimetersToPoints(0.7)
-#         ps.TopMargin    = excel.CentimetersToPoints(1.0)
-#         ps.BottomMargin = excel.CentimetersToPoints(1.0)
-#         ps.Zoom = False
-#         ps.FitToPagesWide = 1
-#         ps.FitToPagesTall = False
-#         ps.PrintTitleRows = "$1:$3"
-#         ps.CenterFooter = " &P "
+        # Excel faylni vaqtincha saqlash
+        with open(excel_path, "wb") as f:
+            f.write(excel_bytes.getbuffer())
 
-#     wb.ExportAsFixedFormat(0, pdf_path)
-#     wb.Close(False)
-#     excel.Quit()
-#     st.success(f"✅ PDF tayyor: {pdf_path}")
+        # Excel → HTML
+        xlsx2html(excel_path, html_path)
+
+        # HTML → PDF
+        pdfkit.from_file(html_path, pdf_path)
+
+        # PDF ni BytesIO ga yuklash
+        pdf_buffer = BytesIO()
+        with open(pdf_path, "rb") as f:
+            pdf_buffer.write(f.read())
+
+        pdf_buffer.seek(0)
+        return pdf_buffer
+
 
 # ==========================
 # STREAMLIT ILOVA
@@ -233,27 +119,8 @@ if choice == "12-Moliya":
                     cell.number_format = '#,##0.0'
 
 
+ 
 
-    def excel_bytes_to_pdf_bytes(excel_bytes):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            excel_path = os.path.join(tmpdir, "temp.xlsx")
-            pdf_path = os.path.join(tmpdir, "temp.pdf")
-            with open(excel_path, "wb") as f:
-                f.write(excel_bytes.getbuffer())
-
-            # Excel → HTML
-            html_path = os.path.join(tmpdir, "temp.html")
-            xlsx2html(excel_path, html_path)
-
-            # HTML → PDF
-            pdfkit.from_file(html_path, pdf_path)
-
-            # PDF-ni o‘qish
-            pdf_buffer = BytesIO()
-            with open(pdf_path, "rb") as f:
-                pdf_buffer.write(f.read())
-            pdf_buffer.seek(0)
-            return pdf_buffer
 
 
 
@@ -302,16 +169,12 @@ if choice == "12-Moliya":
 
 
 
-
-
-
-
-
         KATALOH08=katalog08[["OKPO","ADRES","SOOGU"]]
         KATALOH08.columns = KATALOH08.columns.str.strip()
         BAZA08=baza08[["OKPO","G1","G2","G3","G4","G5","G6","G7","SATR"]]
         BAZA08.columns=BAZA08.columns.str.strip()
         BAZA08=BAZA08[BAZA08["SATR"]==201]
+
 
 
 
@@ -1967,21 +1830,22 @@ if choice == "12-Moliya":
 
 
 
-      # Excel faylini BytesIO ga yozish
+      
         excel_buffer = BytesIO()
         wb.save(excel_buffer)
         excel_buffer.seek(0)
 
-        # PDF yaratish
+        # 🔹 PDF
         pdf_buffer = excel_bytes_to_pdf_bytes(excel_buffer)
 
-        # Yuklab olish tugmalari
+        # 🔽 Yuklab olish
         st.download_button(
             "📥 Excel yuklab olish",
             data=excel_buffer,
             file_name=f"{output_name}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
         st.download_button(
             "📄 PDF yuklab olish",
             data=pdf_buffer,
@@ -1989,5 +1853,16 @@ if choice == "12-Moliya":
             mime="application/pdf"
         )
 
-        # cd "C:\Users\hp\Desktop\python\12 MOLIYA.APP" 
-        # streamlit run app.py
+
+
+
+
+
+
+
+
+
+
+
+# cd "C:\Users\hp\Desktop\python\12 MOLIYA.APP"
+# streamlit run  app.py 
