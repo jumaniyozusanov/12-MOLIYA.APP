@@ -1,18 +1,18 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
-st.set_page_config(page_title="Moliyaviy Hisobot", layout="wide")
-st.title("Moliyaviy Hisobot Dashboard")
+# Sarlavha
+st.title("Salom, Streamlit ishga tushdi!")
 
-# Example table
-data = {
-    "Oy": ["Yanvar", "Fevral", "Mart"],
-    "Daromad": [1200, 1500, 1100],
-    "Xarajat": [800, 900, 700]
-}
-df = pd.DataFrame(data)
+# Oddiy ma'lumotlar jadvali
+st.write("Quyida oddiy DataFrame ko'rsatiladi:")
+df = pd.DataFrame({
+    "Sonlar": np.arange(1, 6),
+    "Kvadratlari": np.arange(1, 6)**2
+})
+st.dataframe(df)
 
-st.subheader("Oylar bo‘yicha daromad va xarajatlar")
-st.table(df)
-
-st.success("App ishga tushdi! 🎉")
+# Oddiy chizma
+st.write("Oddiy chizma:")
+st.line_chart(df["Kvadratlari"])
