@@ -42,45 +42,60 @@ from openpyxl import load_workbook
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
+import pandas as pd
+from io import BytesIO
+import streamlit as st
+import openpyxl
+from fpdf import FPDF
 
-def excel_sheets_to_pdf(excel_path, pdf_path):
-    wb = load_workbook(excel_path, data_only=True)
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'Moliyaviy Hisobot', border=False, ln=True, align='C')
+        self.ln(5)
 
-    pdf = SimpleDocTemplate(
-        pdf_path,
-        pagesize=landscape(A4),
-        rightMargin=20,
-        leftMargin=20,
-        topMargin=20,
-        bottomMargin=20
-    )
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'Sahifa {self.page_no()}', align='C')
 
-    elements = []
-
-    for sheet_name in wb.sheetnames:
-        ws = wb[sheet_name]
-
+def excel_to_pdf_cloud(excel_file):
+    wb = openpyxl.load_workbook(excel_file)
+    pdf = PDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    for sheetname in wb.sheetnames:
+        ws = wb[sheetname]
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', 10)
+        pdf.cell(0, 10, f"Sheet: {sheetname}", ln=True, align="C")
+        pdf.ln(2)
+        
+        # Jadval sarlavhasi va ma'lumotlarni chiqarish
         data = []
         for row in ws.iter_rows(values_only=True):
             data.append([str(cell) if cell is not None else "" for cell in row])
-
+        
         if not data:
             continue
+        
+        # Eng uzun ustun uzunligini hisoblash
+        col_widths = []
+        for col_idx in range(len(data[0])):
+            max_len = max([len(str(row[col_idx])) for row in data])
+            col_widths.append(max(10, min(max_len * 2, 60)))  # minimal/maximal width
 
-        table = Table(data, repeatRows=1)
-        table.setStyle(TableStyle([
-            ("GRID", (0,0), (-1,-1), 0.5, colors.black),
-            ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
-            ("FONT", (0,0), (-1,-1), "Helvetica"),
-            ("FONTSIZE", (0,0), (-1,-1), 8),
-            ("ALIGN", (0,0), (-1,-1), "CENTER"),
-            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-        ]))
+        pdf.set_font("Arial", size=10)
+        for row in data:
+            for i, item in enumerate(row):
+                pdf.cell(col_widths[i], 6, str(item), border=1)
+            pdf.ln(6)
 
-        elements.append(table)
-        elements.append(PageBreak())
+    pdf_buffer = BytesIO()
+    pdf.output(pdf_buffer)
+    pdf_buffer.seek(0)
+    return pdf_buffer
 
-    pdf.build(elements)
 
 
 
@@ -1859,33 +1874,22 @@ if choice == "12-Moliya":
 
 
       
-            # Excel buffer
+    # Excel buffer
         excel_buffer = BytesIO()
         wb.save(excel_buffer)
         excel_buffer.seek(0)
 
-        # 🔹 vaqtinchalik papka
-        with tempfile.TemporaryDirectory() as tmpdir:
-            excel_path = os.path.join(tmpdir, "natija.xlsx")
-            pdf_path = os.path.join(tmpdir, "hisobot.pdf")
+        # PDF yaratish
+        pdf_buffer = excel_to_pdf_cloud(excel_buffer)
 
-            # Excel faylga yozish
-            with open(excel_path, "wb") as f:
-                f.write(excel_buffer.getvalue())
-
-            # 🔹 Excel → PDF
-            excel_sheets_to_pdf(excel_path, pdf_path)
-
-            # 🔽 PDF yuklab olish
-            with open(pdf_path, "rb") as f:
-                st.download_button(
-                    "📄 PDF yuklab olish",
-                    data=f,
-                    file_name="hisobot.pdf",
-                    mime="application/pdf"
-                )
-
-                    
+        # Yuklab olish tugmasi
+        st.download_button(
+            "📄 PDF yuklab olish",
+            data=pdf_buffer,
+            file_name="hisobot.pdf",
+            mime="application/pdf"
+        )
+            
 
         # 🔽 Yuklab olish
         st.download_button(
