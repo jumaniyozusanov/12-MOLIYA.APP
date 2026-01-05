@@ -38,85 +38,49 @@ from io import BytesIO
 from datetime import datetime
 
 
-def multiple_dfs_to_pdf(df_list, titles):
-    """
-    df_list  → [df1, df2, df3]
-    titles   → ["12-Moliya", "Natija", "Hisobot"]
-    """
+from openpyxl import load_workbook
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
 
-    buffer = BytesIO()
+def excel_sheets_to_pdf(excel_path, pdf_path):
+    wb = load_workbook(excel_path, data_only=True)
 
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=0.7*cm,
-        rightMargin=0.7*cm,
-        topMargin=1*cm,
-        bottomMargin=1*cm
+    pdf = SimpleDocTemplate(
+        pdf_path,
+        pagesize=landscape(A4),
+        rightMargin=20,
+        leftMargin=20,
+        topMargin=20,
+        bottomMargin=20
     )
 
-    styles = getSampleStyleSheet()
     elements = []
 
-    # 🔹 Yuqori umumiy sarlavha
-    elements.append(Paragraph(
-        "<b>MOLIYAVIY HISOBOT</b>",
-        styles["Title"]
-    ))
-    elements.append(Paragraph(
-        f"Sana: {datetime.now().strftime('%d.%m.%Y')}",
-        styles["Normal"]
-    ))
-    elements.append(PageBreak())
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
 
-    for df, title in zip(df_list, titles):
+        data = []
+        for row in ws.iter_rows(values_only=True):
+            data.append([str(cell) if cell is not None else "" for cell in row])
 
-        # 🔸 Har bir jadval sarlavhasi
-        elements.append(Paragraph(
-            f"<b>{title}</b>",
-            styles["Heading2"]
-        ))
-        elements.append(Paragraph("<br/>", styles["Normal"]))
+        if not data:
+            continue
 
-        # 🔸 Jadval data
-        table_data = [df.columns.tolist()] + df.values.tolist()
-
-        col_widths = []
-        for col in df.columns:
-            max_len = max(df[col].astype(str).map(len).max(), len(col))
-            col_widths.append(min(max_len * 6, 90))
-
-        table = Table(
-            table_data,
-            colWidths=col_widths,
-            repeatRows=1
-        )
-
+        table = Table(data, repeatRows=1)
         table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-
-            ('BACKGROUND', (0, 0), (-1, 0), colors.whitesmoke),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ("GRID", (0,0), (-1,-1), 0.5, colors.black),
+            ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+            ("FONT", (0,0), (-1,-1), "Helvetica"),
+            ("FONTSIZE", (0,0), (-1,-1), 8),
+            ("ALIGN", (0,0), (-1,-1), "CENTER"),
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
         ]))
 
         elements.append(table)
         elements.append(PageBreak())
 
-    doc.build(
-        elements,
-        onFirstPage=_add_page_number,
-        onLaterPages=_add_page_number
-    )
-
-    buffer.seek(0)
-    return buffer
-def _add_page_number(canvas, doc):
-    canvas.drawRightString(20*cm, 1*cm, str(canvas.getPageNumber()))
-
+    pdf.build(elements)
 
 
 
@@ -1895,23 +1859,33 @@ if choice == "12-Moliya":
 
 
       
+            # Excel buffer
         excel_buffer = BytesIO()
         wb.save(excel_buffer)
         excel_buffer.seek(0)
 
-        pdf_buffer = multiple_dfs_to_pdf(
-            df_list=[df_final, df_final_2, DEB_VILOYAT],
-            titles=["12-Moliya", "Moliya Natija", "Yakuniy Hisobot"]
-        )
+        # 🔹 vaqtinchalik papka
+        with tempfile.TemporaryDirectory() as tmpdir:
+            excel_path = os.path.join(tmpdir, "natija.xlsx")
+            pdf_path = os.path.join(tmpdir, "hisobot.pdf")
 
-        st.download_button(
-            "📄 PDF yuklab olish",
-            data=pdf_buffer,
-            file_name="moliyaviy_hisobot.pdf",
-            mime="application/pdf"
-        )
+            # Excel faylga yozish
+            with open(excel_path, "wb") as f:
+                f.write(excel_buffer.getvalue())
 
-            
+            # 🔹 Excel → PDF
+            excel_sheets_to_pdf(excel_path, pdf_path)
+
+            # 🔽 PDF yuklab olish
+            with open(pdf_path, "rb") as f:
+                st.download_button(
+                    "📄 PDF yuklab olish",
+                    data=f,
+                    file_name="hisobot.pdf",
+                    mime="application/pdf"
+                )
+
+                    
 
         # 🔽 Yuklab olish
         st.download_button(
