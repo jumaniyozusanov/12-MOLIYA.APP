@@ -48,53 +48,51 @@ import streamlit as st
 import openpyxl
 from fpdf import FPDF
 
-class PDF(FPDF):
-    def header(self):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'Moliyaviy Hisobot', border=False, ln=True, align='C')
-        self.ln(5)
+from io import BytesIO
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Sahifa {self.page_no()}', align='C')
-
-def excel_to_pdf_cloud(excel_file):
-    wb = openpyxl.load_workbook(excel_file)
-    pdf = PDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
+def excel_to_pdf_cloud(excel_bytes):
+    # BytesIO ni ExcelFile sifatida o'qish
+    excel_bytes.seek(0)
+    xls = pd.ExcelFile(excel_bytes)
     
-    for sheetname in wb.sheetnames:
-        ws = wb[sheetname]
-        pdf.add_page()
-        pdf.set_font("Arial", 'B', 10)
-        pdf.cell(0, 10, f"Sheet: {sheetname}", ln=True, align="C")
-        pdf.ln(2)
-        
-        # Jadval sarlavhasi va ma'lumotlarni chiqarish
-        data = []
-        for row in ws.iter_rows(values_only=True):
-            data.append([str(cell) if cell is not None else "" for cell in row])
-        
-        if not data:
-            continue
-        
-        # Eng uzun ustun uzunligini hisoblash
-        col_widths = []
-        for col_idx in range(len(data[0])):
-            max_len = max([len(str(row[col_idx])) for row in data])
-            col_widths.append(max(10, min(max_len * 2, 60)))  # minimal/maximal width
-
-        pdf.set_font("Arial", size=10)
-        for row in data:
-            for i, item in enumerate(row):
-                pdf.cell(col_widths[i], 6, str(item), border=1)
-            pdf.ln(6)
-
     pdf_buffer = BytesIO()
-    pdf.output(pdf_buffer)
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(A4))
+    elements = []
+    styles = getSampleStyleSheet()
+    styleH = styles["Heading2"]
+
+    for sheet_name in xls.sheet_names:
+        df = pd.read_excel(xls, sheet_name=sheet_name)
+
+        # Sheet nomi sarlavha
+        elements.append(Paragraph(sheet_name, styleH))
+        elements.append(Spacer(1, 12))
+
+        # DataFrame → Table
+        data = [df.columns.tolist()] + df.values.tolist()
+        table = Table(data, repeatRows=1)
+
+        # Chiroyli style
+        style = TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#d9d9d9")),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.black),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+            ('FONTSIZE', (0,0), (-1,-1), 10),
+        ])
+        table.setStyle(style)
+        elements.append(table)
+        elements.append(Spacer(1, 24))  # Sahifa bo‘sh joy
+
+    doc.build(elements)
     pdf_buffer.seek(0)
     return pdf_buffer
+
 
 
 
@@ -1872,9 +1870,12 @@ if choice == "12-Moliya":
 
 
 
+        # =========================
+        # Streamlit ilova qismi
+        # =========================
+        st.title("💰 Moliyaviy Hisobot (Cloud PDF)")
 
-      
-    # Excel buffer
+        # Excel buffer yaratish (sizning wb obyekt)
         excel_buffer = BytesIO()
         wb.save(excel_buffer)
         excel_buffer.seek(0)
@@ -1889,7 +1890,6 @@ if choice == "12-Moliya":
             file_name="hisobot.pdf",
             mime="application/pdf"
         )
-            
 
         # 🔽 Yuklab olish
         st.download_button(
